@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DEVOPS_DESK_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export DEVOPS_DESK_ROOT
+
+source "$DEVOPS_DESK_ROOT/lib/core.sh"
+source "$DEVOPS_DESK_ROOT/lib/state.sh"
+source "$DEVOPS_DESK_ROOT/lib/checks.sh"
+
+# ─── FZF defaults (available to all subcommands) ──────────────────────────────
+export FZF_DEFAULT_OPTS=""
+DD_FZF_OPTS=(
+  --height=80%
+  --layout=reverse
+  --border=rounded
+  --info=inline
+  --color="header:bold,prompt:cyan,pointer:green,hl:yellow,hl+:yellow"
+  --bind="ctrl-/:toggle-preview"
+  --bind="ctrl-f:preview-page-down"
+  --bind="ctrl-b:preview-page-up"
+)
+export DD_FZF_OPTS
+
+usage() {
+  local env
+  env=$(state_get_env)
+  [[ -z "$env" ]] && env="$(color_yellow "not set")"
+
+  cat <<EOF
+
+$(color_bold "devops-desk") — Terminal DevOps Control Center
+
+$(color_bold "ENVIRONMENT")
+  env                    Select or show current environment
+  auth [login|status]    AWS SSO authentication
+  connect                Configure kubeconfig for EKS
+  status                 Show current env + cluster info
+
+$(color_bold "NAVIGATION")
+  nav                    Interactive FZF resource navigator
+  nav pods               Navigate pods (logs/exec/restart/forward)
+  nav deployments        Navigate deployments
+  nav services           Navigate services + port-forward
+  nav namespaces         Switch namespace
+  nav helm               Browse Helm releases
+  nav flux               Browse Flux resources
+  nav nodes              View cluster nodes
+
+$(color_bold "OPERATIONS")
+  dashboard              DevOps dashboard (pods/flux/helm overview)
+  flux [reconcile|status|images|suspend|resume]
+  helm [upgrade|rollback]
+  pods [logs|restart|exec|forward|debug]
+
+$(color_bold "INTEGRATIONS")
+  k9s                    Launch k9s with devops-desk plugins
+  github [prs|runs|issues]
+
+$(color_dim "Current environment:") $env
+
+EOF
+}
+
+cmd_env() {
+  if [[ $# -eq 0 ]]; then
+    local envs
+    envs=$(ls "$DEVOPS_DESK_ROOT/config/envs/" | sed 's/\.sh$//')
+    local selected
+    selected=$(echo "$envs" | fzf "${DD_FZF_OPTS[@]}" \
+      --prompt="Select environment > " \
+      --header="devops-desk — choose environment" \
+      --height=12) || return 0
+
+    [[ -z "$selected" ]] && return
+    state_set_env "$selected"
+    success "Environment set to: $selected"
+  else
+    local env="$1"
+    if [[ ! -f "$DEVOPS_DESK_ROOT/config/envs/${env}.sh" ]]; then
+      error "Unknown environment: $env"
+      echo "  Available: $(ls "$DEVOPS_DESK_ROOT/config/envs/" | sed 's/\.sh$//' | tr '\n' ' ')"
+      exit 1
+    fi
+    state_set_env "$env"
+    success "Environment set to: $env"
+  fi
+}
+
+cmd_status() {
+  local env
+  env=$(state_get_env)
+
+  echo ""
+  echo -e "$(color_bold "devops-desk status")"
+  echo -e "$(color_dim "  ──────────────────────────────────────────")"
+
+  if [[ -z "$env" ]]; then
+    echo -e "  $(color_bold "Environment:") $(color_yellow "not set")  — run: devops-desk env"
+    echo ""
+    return
+  fi
+
+  source "$DEVOPS_DESK_ROOT/config/envs/${env}.sh"
+
+  printf "  %-15s %s\n" "$(color_bold "Environment:")" "$env"
+  printf "  %-15s %s\n" "$(color_bold "AWS Profile:")" "${DD_AWS_PROFILE:-not set}"
+  printf "  %-15s %s\n" "$(color_bold "AWS Region:")"  "${DD_AWS_REGION:-not set}"
+  printf "  %-15s %s\n" "$(color_bold "EKS Cluster:")" "${DD_EKS_CLUSTER:-not set}"
+
+  if aws sts get-caller-identity --profile "${DD_AWS_PROFILE:-}" &>/dev/null 2>&1; then
+    printf "  %-15s %s\n" "$(color_bold "AWS Auth:")" "$(color_green "authenticated")"
+  else
+    printf "  %-15s %s\n" "$(color_bold "AWS Auth:")" "$(color_yellow "not authenticated")  — run: devops-desk auth"
+  fi
+
+  local ctx
+  ctx=$(kubectl config current-context 2>/dev/null || echo "none")
+  printf "  %-15s %s\n" "$(color_bold "k8s Context:")" "$ctx"
+
+  echo ""
+}
+
+launch_k9s() {
+  check_dependency k9s
+  local k9s_config_dir="${K9S_CONFIG_DIR:-$HOME/.config/k9s}"
+  mkdir -p "$k9s_config_dir"
+
+  if [[ -f "$DEVOPS_DESK_ROOT/k9s/plugins.yaml" ]]; then
+    cp "$DEVOPS_DESK_ROOT/k9s/plugins.yaml" "$k9s_config_dir/plugins.yaml"
+  fi
+  if [[ -f "$DEVOPS_DESK_ROOT/k9s/skin.yaml" ]]; then
+    mkdir -p "$k9s_config_dir/skins"
+    cp "$DEVOPS_DESK_ROOT/k9s/skin.yaml" "$k9s_config_dir/skins/devops-desk.yaml"
+  fi
+
+  k9s "$@"
+}
+
+main() {
+  local cmd="${1:-help}"
+  shift || true
+
+  case "$cmd" in
+    env)       cmd_env "$@" ;;
+    auth)      source "$DEVOPS_DESK_ROOT/commands/auth.sh";      cmd_auth "$@" ;;
+    connect)   source "$DEVOPS_DESK_ROOT/commands/connect.sh";   cmd_connect "$@" ;;
+    nav)       source "$DEVOPS_DESK_ROOT/commands/nav.sh";       cmd_nav "$@" ;;
+    dashboard) source "$DEVOPS_DESK_ROOT/commands/dashboard.sh"; cmd_dashboard "$@" ;;
+    flux)      source "$DEVOPS_DESK_ROOT/commands/flux.sh";      cmd_flux "$@" ;;
+    helm)      source "$DEVOPS_DESK_ROOT/commands/helm.sh";      cmd_helm "$@" ;;
+    pods)      source "$DEVOPS_DESK_ROOT/commands/pods.sh";      cmd_pods "$@" ;;
+    k9s)       launch_k9s "$@" ;;
+    github)    source "$DEVOPS_DESK_ROOT/commands/github.sh";    cmd_github "$@" ;;
+    status)    cmd_status ;;
+    help|--help|-h) usage ;;
+    *)
+      error "Unknown command: $cmd"
+      echo "  Run 'devops-desk help' for usage."
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"

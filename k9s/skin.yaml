@@ -1,0 +1,47 @@
+# devops-desk k9s skin (Tokyo Night palette)
+k9s:
+  body:
+    fgColor: "#c0caf5"
+    bgColor: "#1a1b26"
+    logoColor: "#7aa2f7"
+  prompt:
+    fgColor: "#c0caf5"
+    bgColor: "#1a1b26"
+    suggestColor: "#565f89"
+  info:
+    fgColor: "#7aa2f7"
+    sectionColor: "#7aa2f7"
+  border:
+    fgColor: "#3b4261"
+    focusColor: "#7aa2f7"
+  menu:
+    fgColor: "#c0caf5"
+    keyColor: "#7dcfff"
+    numKeyColor: "#ff9e64"
+  crumbs:
+    fgColor: "#1a1b26"
+    bgColor: "#7aa2f7"
+    activeColor: "#bb9af7"
+  status:
+    newColor:       "#9ece6a"
+    modifyColor:    "#7aa2f7"
+    addColor:       "#9ece6a"
+    errorColor:     "#f7768e"
+    highlightColor: "#e0af68"
+    killColor:      "#f7768e"
+    completedColor: "#565f89"
+  title:
+    fgColor:        "#c0caf5"
+    bgColor:        "#1a1b26"
+    highlightColor: "#e0af68"
+    counterColor:   "#7aa2f7"
+    filterColor:    "#7aa2f7"
+  views:
+    charts:
+      bgColor: "default"
+      defaultDialColors:
+        - "#7aa2f7"
+        - "#f7768e"
+      defaultChartColors:
+        - "#7aa2f7"
+        - "#f7768e"

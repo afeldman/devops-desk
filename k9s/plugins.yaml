@@ -1,0 +1,148 @@
+plugins:
+  # ── Flux ──────────────────────────────────────────────────────────────────
+  flux-reconcile-ks:
+    shortCut: Shift-R
+    description: "Flux: Reconcile Kustomization"
+    scopes:
+      - kustomizations
+    command: flux
+    background: false
+    args:
+      - reconcile
+      - kustomization
+      - $NAME
+      - --namespace
+      - $NAMESPACE
+      - --with-source
+
+  flux-reconcile-hr:
+    shortCut: Shift-R
+    description: "Flux: Reconcile HelmRelease"
+    scopes:
+      - helmreleases
+    command: flux
+    background: false
+    args:
+      - reconcile
+      - helmrelease
+      - $NAME
+      - --namespace
+      - $NAMESPACE
+
+  flux-suspend:
+    shortCut: Ctrl-S
+    description: "Flux: Suspend"
+    scopes:
+      - kustomizations
+      - helmreleases
+    command: flux
+    background: true
+    args:
+      - suspend
+      - kustomization
+      - $NAME
+      - --namespace
+      - $NAMESPACE
+
+  flux-resume:
+    shortCut: Ctrl-U
+    description: "Flux: Resume"
+    scopes:
+      - kustomizations
+      - helmreleases
+    command: flux
+    background: true
+    args:
+      - resume
+      - kustomization
+      - $NAME
+      - --namespace
+      - $NAMESPACE
+
+  # ── Pods ──────────────────────────────────────────────────────────────────
+  pod-shell:
+    shortCut: Shift-E
+    description: "Exec: shell into pod"
+    scopes:
+      - pods
+    command: kubectl
+    background: false
+    args:
+      - exec
+      - -it
+      - $NAME
+      - -n
+      - $NAMESPACE
+      - --
+      - sh
+
+  pod-debug:
+    shortCut: Shift-D
+    description: "Debug pod (describe)"
+    scopes:
+      - pods
+    command: kubectl
+    background: false
+    args:
+      - describe
+      - pod
+      - $NAME
+      - -n
+      - $NAMESPACE
+
+  # ── Deployments ───────────────────────────────────────────────────────────
+  deploy-restart:
+    shortCut: Ctrl-R
+    description: "Rollout: restart deployment"
+    scopes:
+      - deployments
+    command: kubectl
+    background: true
+    args:
+      - rollout
+      - restart
+      - deployment/$NAME
+      - -n
+      - $NAMESPACE
+
+  deploy-history:
+    shortCut: Shift-H
+    description: "Rollout: history"
+    scopes:
+      - deployments
+    command: kubectl
+    background: false
+    args:
+      - rollout
+      - history
+      - deployment/$NAME
+      - -n
+      - $NAMESPACE
+
+  # ── Helm ──────────────────────────────────────────────────────────────────
+  helm-values:
+    shortCut: Shift-V
+    description: "Helm: get values"
+    scopes:
+      - helmreleases
+    command: helm
+    background: false
+    args:
+      - get
+      - values
+      - $NAME
+      - -n
+      - $NAMESPACE
+
+  helm-history:
+    shortCut: Shift-H
+    description: "Helm: release history"
+    scopes:
+      - helmreleases
+    command: helm
+    background: false
+    args:
+      - history
+      - $NAME
+      - -n
+      - $NAMESPACE
