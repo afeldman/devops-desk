@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 REQUIRED_DEPS=(aws kubectl fzf)
-OPTIONAL_DEPS=(k9s flux helm gh bat stern)
+OPTIONAL_DEPS=(k9s flux helm gh bat stern git oras uv)
 
 check_dependency() {
   local dep="$1"

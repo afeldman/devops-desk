@@ -1,7 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DEVOPS_DESK_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Resolve symlink so installation via /usr/local/bin works
+SOURCE="${BASH_SOURCE[0]}"
+
+while [ -h "$SOURCE" ]; do
+  DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+
+SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
+
+# devops-desk root
+DEVOPS_DESK_ROOT="${DEVOPS_DESK_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 export DEVOPS_DESK_ROOT
 
 source "$DEVOPS_DESK_ROOT/lib/core.sh"
@@ -52,6 +64,7 @@ $(color_bold "OPERATIONS")
   flux [reconcile|status|images|suspend|resume]
   helm [upgrade|rollback]
   pods [logs|restart|exec|forward|debug]
+  tfctl [reconcile|replan|suspend|resume|status]
 
 $(color_bold "INTEGRATIONS")
   k9s                    Launch k9s with devops-desk plugins
@@ -150,6 +163,7 @@ main() {
     flux)      source "$DEVOPS_DESK_ROOT/commands/flux.sh";      cmd_flux "$@" ;;
     helm)      source "$DEVOPS_DESK_ROOT/commands/helm.sh";      cmd_helm "$@" ;;
     pods)      source "$DEVOPS_DESK_ROOT/commands/pods.sh";      cmd_pods "$@" ;;
+    tfctl)     source "$DEVOPS_DESK_ROOT/commands/tfctl.sh";     cmd_tfctl "$@" ;;
     k9s)       launch_k9s "$@" ;;
     github)    source "$DEVOPS_DESK_ROOT/commands/github.sh";    cmd_github "$@" ;;
     status)    cmd_status ;;
