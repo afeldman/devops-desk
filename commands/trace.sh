@@ -55,7 +55,7 @@ $(color_bold "Environment Variables:")
 $(color_bold "Dash0 Integration:")
   Endpoint: ingress.eu-west-1.aws.dash0.com:4317
   Protocol: gRPC (OTLP)
-  Dataset:  lynqtech-dev (from headers)
+  Dataset:  dev (from headers)
 
 EOF
 }
@@ -138,7 +138,7 @@ trace_status() {
 # ─── Export OTEL Variables ────────────────────────────────────────────────────
 trace_export() {
   local auth_token="${1:-}"
-  local dataset="${2:-lynqtech-dev}"
+  local dataset="${2:-dev}"
   local service="${3:-bi-advanced-analytics}"
 
   if [[ -z "$auth_token" ]]; then

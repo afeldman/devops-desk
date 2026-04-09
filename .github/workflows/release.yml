@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bundle devops-desk
+        run: |
+          chmod +x scripts/bundle.sh
+          bash scripts/bundle.sh dist/devops-desk
+
+      - name: Create release tarball
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
+          DIRNAME="devops-desk-${VERSION}"
+          mkdir -p "dist/${DIRNAME}"
+          cp dist/devops-desk "dist/${DIRNAME}/devops-desk"
+          cd dist
+          tar czf "devops-desk_${VERSION}_src.tar.gz" "${DIRNAME}/"
+          shasum -a 256 "devops-desk_${VERSION}_src.tar.gz" | awk '{print $1}' > checksums.txt
+
+      - name: Create GitHub Release
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            dist/devops-desk_*_src.tar.gz \
+            --title "${{ github.ref_name }}" \
+            --generate-notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install gotofish
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/afeldman/scripts/master/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Generate fish-food
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
+          TAG="${{ github.ref_name }}"
+          SHA256=$(cat dist/checksums.txt)
+          TARBALL_URL="https://github.com/afeldman/devops-desk/releases/download/${TAG}/devops-desk_${VERSION}_src.tar.gz"
+
+          gotofish gen --bash afeldman/devops-desk \
+            --tag "$TAG" \
+            --name devops-desk \
+            --desc "fzf-based terminal DevOps control center" \
+            --resources "devops-desk" \
+            --url "$TARBALL_URL" \
+            --sha256 "$SHA256"
+        env:
+          FISH_FOOD_TOKEN: ${{ secrets.FISH_FOOD_TOKEN }}
