@@ -39,6 +39,32 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Update Homebrew Formula
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
+          SHA256=$(cat dist/checksums.txt)
+          
+          # Clone homebrew-tap
+          git clone https://afeldman:${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}@github.com/afeldman/homebrew-tap.git tap-repo
+          cd tap-repo
+          
+          # Update devops-desk.rb
+          sed -i.bak \
+            -e "s/version \"[^\"]*\"/version \"${VERSION}\"/" \
+            -e "s/sha256 \"[^\"]*\"/sha256 \"${SHA256}\"/" \
+            Formula/devops-desk.rb
+          
+          # Commit and push
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add Formula/devops-desk.rb
+          git commit -m "Update devops-desk formula to v${VERSION}"
+          git push origin master
+          
+          cd ..
+          rm -rf tap-repo
+
       - name: Install gotofish
         run: |
           curl -fsSL https://raw.githubusercontent.com/afeldman/scripts/master/install.sh | sh
